@@ -1,18 +1,18 @@
 from setuptools import setup, find_packages
 
-setup(name='ucac4-convert',
+requirements = ['requests']
+
+setup(name='console_scripts',
       version='1.0.0',
       description='Convert UCAC4 Catalog',
-      url='https://github.com/nvermaas/UCAC4-converter',
+      url='https://github.com/nvermaas/UCAC4_converter',
       author='Nico Vermaas',
       author_email='nvermaas@xs4all.nl',
       license='BSD',
-      install_requires=['requests'],
+      install_requires=requirements,
       packages=find_packages(),
-      include_package_data=True,
       entry_points={
             'console_scripts': [
-                  'card-to-pano=ucac4-convert.main:main',
-            ],
-      },
-      )
+                  'ucac4-convert=ucac4_convert.main:main'
+              ],
+      })

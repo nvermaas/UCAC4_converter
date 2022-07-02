@@ -1,6 +1,6 @@
 # UCAC4 Converter
 
-Convert Google Cardboard images to ImageSpheres
+Convert UCAC4 ascii catalog to a SQL database
 
 ### Installation
 
