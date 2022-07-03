@@ -2,23 +2,56 @@ import argparse
 import sqlite3
 from sqlite3 import Error
 
-def create_connection(db_file):
+ucac4_table = """
+CREATE TABLE IF NOT EXISTS ucac4 (
+	ucac4_id integer PRIMARY KEY,
+	ot text NOT NULL,
+	ra float NOT NULL,
+	dec float NOT NULL,
+    f_mag float,
+    a_mag float,
+    j_mag float,
+    h_mag float,
+    k_mag float,
+    b_mag float,
+    v_mag float,
+    g_mag float,
+    r_mag float,
+    i_mag float
+);
+"""
+
+def create_sqlite_database(db_file):
     """ create a database connection to a SQLite database """
     conn = None
     try:
         conn = sqlite3.connect(db_file)
-        print(sqlite3.version)
+        cursor = conn.cursor()
+        cursor.execute(ucac4_table)
+
     except Error as e:
         print(e)
     finally:
         if conn:
             conn.close()
 
+    return conn
+
+
+def add_star_to_sqlite(conn, star):
+    sql = ''' INSERT INTO ucac4(ucac4_id,ot,ra,dec,f_mag,a_mag,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+              VALUES(?,?,?) '''
+    cur = conn.cursor()
+    cur.execute(sql, star)
+    conn.commit()
+
 
 def parse_line(line):
     # https://irsa.ipac.caltech.edu/data/UCAC4/readme_u4.txt
-    ucac4_id = line[0:10]
-    object_type = line[84:85]
+    record = {}
+
+    record['ucac4_id'] = line[0:10]
+    record['ot'] = line[84:85]
 
     # 0 = good, clean star (from MPOS), no known problem
     # 1 = largest flag of any image = near overexposed star (from MPOS)
@@ -31,8 +64,8 @@ def parse_line(line):
     # 8 = high proper motion solution in UCAC4, star not matched with PPMXL
     # 9 = high proper motion solution in UCAC4, discrepant PM to PPMXL (see documentation
 
-    ra       = line[11:22]
-    dec      = line[23:33]
+    record['ra']  = line[11:22]
+    record['dec'] = line[23:33]
 
     # 3e) Additional photometry
     # -------------------------
@@ -43,40 +76,20 @@ def parse_line(line):
     # For more details see http://www.aavso.org/apass  and
     # http://www.ipac.caltech.edu/2mass/releases/allsky/ .
 
-    f_mag    = line[63:69]
-    a_mag    = line[70:76]
-    j_mag    = line[174:180]
-    h_mag    = line[189:195]
-    k_mag    = line[204:210]
-    b_mag    = line[219:225]
-    v_mag    = line[230:236] # visual magnitude
-    g_mag    = line[241:247]
-    r_mag    = line[252:258]
-    i_mag    = line[263:269]
+    record['f_mag'] = line[63:69]
+    record['a_mag'] = line[70:76]
+    record['j_mag'] = line[174:180]
+    record['h_mag'] = line[189:195]
+    record['k_mag'] = line[204:210]
+    record['b_mag'] = line[219:225]
+    record['v_mag'] = line[230:236] # visual magnitude
+    record['g_mag'] = line[241:247]
+    record['r_mag'] = line[252:258]
+    record['i_mag'] = line[263:269]
 
-    print(ucac4_id, ra, dec, v_mag)
-
-
-def convert_to_sqlite(source_file, location):
-    result = 0
-
-    create_connection(location)
-
-    # open the source_file
-    with open(source_file, "r") as f:
-        # skip the header
-        line = f.readline()
-        count = 0
-
-        while line != '':  # The EOF char is an empty string
-            # 451-133336|359.2517683+00.1305667  15  16   22 2001.15 2001.45|13.301 13.273 0.06 | 0  0|  8   8   2|   +10.1     -2.7  1.9  2.3|102165057 181-173041             |1098500800 12.162 0.02:05 11.827 0.02:05 11.764 0.02:05|13.971:.02 13.327:.05 13.649:.02 13.164:.06 13.050:.04|00.000000010|  0   0
-            line = f.readline()
-
-            count = count + 1
-            parse_line(line)
+    return record
 
 
-    return count
 
 def convert_to_postgres(source_file, location):
     result = 0
@@ -90,14 +103,31 @@ def do_conversion(args):
     target_location = args.target.split(':')[1]
 
     if target_format == 'sqlite':
-        result = convert_to_sqlite(args.source_file,target_location)
+        conn = create_sqlite_database(target_location)
 
     elif target_format == 'postgres':
-        result = convert_to_postgres(args.source_file,target_location)
-
+        pass
     else:
         result = -1
         print('unknown target format: '+target_format)
+
+    # open the source_file
+    with open(args.source_file, "r") as f:
+        # skip the header
+        line = f.readline()
+        count = 0
+
+        while line != '':  # The EOF char is an empty string
+            # 451-133336|359.2517683+00.1305667  15  16   22 2001.15 2001.45|13.301 13.273 0.06 | 0  0|  8   8   2|   +10.1     -2.7  1.9  2.3|102165057 181-173041             |1098500800 12.162 0.02:05 11.827 0.02:05 11.764 0.02:05|13.971:.02 13.327:.05 13.649:.02 13.164:.06 13.050:.04|00.000000010|  0   0
+            line = f.readline()
+
+            count = count + 1
+            star = parse_line(line)
+
+
+            if target_format == 'sqlite':
+                # add record
+                add_star_to_sqlite(conn, star)
 
     return result
 
