@@ -119,10 +119,89 @@ def convert_from_ascii_to_sqlite(source_location, target_location):
 
 
 def convert_from_binary_to_sqlite(source_location, target_location):
+    """
+            col byte item   fmt unit       explanation                            notes
+        ---------------------------------------------------------------------------
+         1  1- 3 ra     I*4 mas        right ascension at  epoch J2000.0 (ICRS) (1)
+         2  5- 8 spd    I*4 mas        south pole distance epoch J2000.0 (ICRS) (1)
+         3  9-10 magm   I*2 millimag   UCAC fit model magnitude                 (2)
+         4 11-12 maga   I*2 millimag   UCAC aperture  magnitude                 (2)
+         5 13    sigmag I*1 1/100 mag  error of UCAC magnitude                  (3)
+         6 14    objt   I*1            object type                              (4)
+         7 15    cdf    I*1            combined double star flag                (5)
+                 15 bytes
+         8 16    sigra  I*1 mas        s.e. at central epoch in RA (*cos Dec)   (6)
+         9 17    sigdc  I*1 mas        s.e. at central epoch in Dec             (6)
+        10 18    na1    I*1            total # of CCD images of this star
+        11 19    nu1    I*1            # of CCD images used for this star       (7)
+        12 20    cu1    I*1            # catalogs (epochs) used for proper motions
+                  5 bytes
+        13 21-22 cepra  I*2 0.01 yr    central epoch for mean RA, minus 1900
+        14 23-24 cepdc  I*2 0.01 yr    central epoch for mean Dec,minus 1900
+        15 25-26 pmrac  I*2 0.1 mas/yr proper motion in RA*cos(Dec)             (8)
+        16 27-28 pmdc   I*2 0.1 mas/yr proper motion in Dec
+        17 29    sigpmr I*1 0.1 mas/yr s.e. of pmRA * cos Dec                   (9)
+        18 30    sigpmd I*1 0.1 mas/yr s.e. of pmDec                            (9)
+                 10 bytes
+        19 31-34 pts_key I*4           2MASS unique star identifier            (10)
+        20 35-36 j_m    I*2 millimag   2MASS J  magnitude
+        21 37-38 h_m    I*2 millimag   2MASS H  magnitude
+        22 39-40 k_m    I*2 millimag   2MASS K_s magnitude
+        23 41    icqflg I*1            2MASS cc_flg*10 + ph_qual flag for J    (11)
+        24 42     (2)   I*1            2MASS cc_flg*10 + ph_qual flag for H    (11)
+        25 43     (3)   I*1            2MASS cc_flg*10 + ph_qual flag for K_s  (11)
+        26 44    e2mpho I*1 1/100 mag  error 2MASS J   magnitude               (12)
+        27 45     (2)   I*1 1/100 mag  error 2MASS H   magnitude               (12)
+        28 46     (3)   I*1 1/100 mag  error 2MASS K_s magnitude               (12)
+                 16 bytes
+        29 47-48 apasm  I*2 millimag   B magnitude from APASS                  (13)
+        30 49-50  (2)   I*2 millimag   V magnitude from APASS                  (13)
+        31 51-52  (3)   I*2 millimag   g magnitude from APASS                  (13)
+        32 53-54  (4)   I*2 millimag   r magnitude from APASS                  (13)
+        33 55-56  (5)   I*2 millimag   i magnitude from APASS                  (13)
+        34 57    apase  I*1 1/100 mag  error of B magnitude from APASS         (14)
+        35 58     (2)   I*1 1/100 mag  error of V magnitude from APASS         (14)
+        36 59     (3)   I*1 1/100 mag  error of g magnitude from APASS         (14)
+        37 60     (4)   I*1 1/100 mag  error of r magnitude from APASS         (14)
+        38 61     (5)   I*1 1/100 mag  error of i magnitude from APASS         (14)
+        39 62    gcflg  I*1            Yale SPM g-flag*10  c-flag              (15)
+                 16 bytes
+        40 63-66 icf(1) I*4            FK6-Hipparcos-Tycho source flag         (16)
+        41       icf(2) ..             AC2000       catalog match flag         (17)
+        42       icf(3) ..             AGK2 Bonn    catalog match flag         (17)
+        43       icf(4) ..             AKG2 Hamburg catalog match flag         (17)
+        44       icf(5) ..             Zone Astrog. catalog match flag         (17)
+        45       icf(6) ..             Black Birch  catalog match flag         (17)
+        46       icf(7) ..             Lick Astrog. catalog match flag         (17)
+        47       icf(8) ..             NPM  Lick    catalog match flag         (17)
+        48       icf(9) ..             SPM  YSJ1    catalog match flag         (17)
+                  4 bytes
+        49 67    leda   I*1            LEDA galaxy match flag                  (18)
+        50 68    x2m    I*1            2MASS extend.source flag                (19)
+        51 69-72 rnm    I*4            unique star identification number       (20)
+        52 73-74 zn2    I*2            zone number of UCAC2 (0 = no match)     (21)
+        53 75-78 rn2    I*4            running record number along UCAC2 zone  (21)
+                 12 bytes
+        ---------------------------------------------------------------------------
+                 78 = total number of bytes per star record
+
+    """
     count = 0
 
     # create a database connection
     conn = create_sqlite_database(target_location)
+
+    nsz = 206
+    with open(source_location, "rb") as f:
+        while count < nsz:
+            pointer = 0
+            size = 8
+
+            f.seek(pointer)
+            bytes=f.read(size)
+            pointer = pointer + size
+
+            count = count + 1
 
     with open(source_location, "r") as f:
         # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
