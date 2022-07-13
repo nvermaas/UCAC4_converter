@@ -25,7 +25,10 @@ def create_sqlite_database(db_file):
     """ create a database connection to a SQLite database """
 
     # remove existing file
-    os.remove(db_file)
+    try:
+        os.remove(db_file)
+    except OSError:
+        pass
 
     conn = None
     try:

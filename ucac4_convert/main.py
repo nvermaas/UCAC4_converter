@@ -1,5 +1,6 @@
 import os, sys
 import argparse
+import codecs
 
 progressbar_length = 100
 
@@ -88,12 +89,37 @@ def parse_line(line):
     return star
 
 
+def convert_from_ascii(conn, source_location, target_format):
+    count = 0
+
+    with open(source_location, "r") as f:
+        # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
+        lines = f.readlines()
+        number_of_stars = len(lines) - 1
+        progress_factor = number_of_stars / progressbar_length
+
+        # skip the first line with the header
+        for line in lines[1:]:
+            star = parse_line(line)
+
+            if target_format == 'sqlite':
+                add_star_to_sqlite(conn, star)
+                count = count + 1
+
+                if (count % progress_factor) == 0:
+                    sys.stdout.write(".")
+
+    return count
+
 def do_conversion(args):
 
-    # determine the requested conversion based on the prefix in the 'target' parameter
+    # determine the requested conversion based on the prefix in the 'source' and 'target' parameters
+    source_format = args.source.split(':')[0]
+    source_location = args.source.split(':')[1]
+
     target_format = args.target.split(':')[0]
     target_location = args.target.split(':')[1]
-
+    count = 0
     try:
 
         if target_format == 'sqlite':
@@ -105,24 +131,8 @@ def do_conversion(args):
             count = -1
             raise Exception('Unknown target format: '+target_format)
 
-        # open the source_file
-        with open(args.source_file, "r") as f:
-            lines = f.readlines()
-            number_of_stars = len(lines)-1
-            progress_factor = number_of_stars / progressbar_length
-
-            count = 0
-
-            # skip the first line with the header
-            for line in lines[1:]:
-                star = parse_line(line)
-
-                if target_format == 'sqlite':
-                    add_star_to_sqlite(conn, star)
-                    count = count + 1
-
-                    if (count % progress_factor) == 0:
-                        sys.stdout.write(".")
+        if source_format == 'ascii':
+            count = convert_from_ascii(conn,source_location, target_format)
 
     except Exception as error:
         print(error)
@@ -138,8 +148,8 @@ def do_conversion(args):
 def main():
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
 
-    parser.add_argument("--source_file",
-                        default="UCAC4_sample.txt",
+    parser.add_argument("--source",
+                        default="ascii:UCAC4_sample.txt",
                         help="ASCII file in UCAC4 format")
     parser.add_argument("--target",
                         default="mysqlite:UCAC4_sample.sqlite3",
@@ -148,8 +158,8 @@ def main():
     args = args = parser.parse_args()
 
     print("--- UCAC4 Converter (version 2 july 2022) ---")
-    print("source_file: " + args.source_file)
-    print("target     : " + args.target)
+    print("source : " + args.source)
+    print("target : " + args.target)
 
     result = do_conversion(args)
     print(result)
