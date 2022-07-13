@@ -205,7 +205,11 @@ def convert_from_binary_to_sqlite(source_location, target_location):
             size = 8
             f.seek(pointer)
             bytes=f.read(size)
-            ra, dec = struct.unpack('<II', bytes) # expected: 4117825, 292970
+
+            ra_mas, spd_mas = struct.unpack('<II', bytes) # expected: 4117825, 292970
+            # convert from milliarcseconds and distance from the south pole
+            ra = ra_mas / 3600000
+            dec = -90 + (spd_mas / 3600000)
 
             # advance pointer
             pointer = pointer + size
@@ -217,7 +221,7 @@ def convert_from_binary_to_sqlite(source_location, target_location):
             # save the star
             star = (ra,dec)
             #add_star_to_sqlite(conn, star)
-            #print(star)
+            print(star)
             count = count + 1
 
             #print(str(count % progress_factor))
