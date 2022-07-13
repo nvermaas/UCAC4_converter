@@ -6,7 +6,7 @@ progressbar_length = 100
 
 from ucac4_convert.sqlite_helper import create_sqlite_database, add_star_to_sqlite
 
-def parse_line(line):
+def parse_ascii_line(line):
     # https://irsa.ipac.caltech.edu/data/UCAC4/readme_u4.txt
 
     ucac4_id = line[0:10]
@@ -89,8 +89,11 @@ def parse_line(line):
     return star
 
 
-def convert_from_ascii(conn, source_location, target_format):
+def convert_from_ascii_to_sqlite(source_location, target_location):
     count = 0
+
+    # create a database connection
+    conn = create_sqlite_database(target_location)
 
     with open(source_location, "r") as f:
         # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
@@ -100,16 +103,49 @@ def convert_from_ascii(conn, source_location, target_format):
 
         # skip the first line with the header
         for line in lines[1:]:
-            star = parse_line(line)
+            star = parse_ascii_line(line)
 
-            if target_format == 'sqlite':
-                add_star_to_sqlite(conn, star)
-                count = count + 1
+            add_star_to_sqlite(conn, star)
+            count = count + 1
 
-                if (count % progress_factor) == 0:
-                    sys.stdout.write(".")
+            if (count % progress_factor) == 0:
+                sys.stdout.write(".")
+
+    # close the database connection
+    if conn:
+        conn.close()
 
     return count
+
+
+def convert_from_binary_to_sqlite(source_location, target_location):
+    count = 0
+
+    # create a database connection
+    conn = create_sqlite_database(target_location)
+
+    with open(source_location, "r") as f:
+        # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
+        lines = f.readlines()
+        number_of_stars = len(lines) - 1
+        progress_factor = number_of_stars / progressbar_length
+
+        # skip the first line with the header
+        for line in lines[1:]:
+            star = parse_ascii_line(line)
+
+            add_star_to_sqlite(conn, star)
+            count = count + 1
+
+            if (count % progress_factor) == 0:
+                sys.stdout.write(".")
+
+    # close the database connection
+    if conn:
+        conn.close()
+
+    return count
+
 
 def do_conversion(args):
 
@@ -119,29 +155,17 @@ def do_conversion(args):
 
     target_format = args.target.split(':')[0]
     target_location = args.target.split(':')[1]
+
     count = 0
-    try:
 
-        if target_format == 'sqlite':
-            conn = create_sqlite_database(target_location)
-
-        elif target_format == 'postgres':
-            pass
-        else:
-            count = -1
-            raise Exception('Unknown target format: '+target_format)
+    if target_format == 'sqlite':
 
         if source_format == 'ascii':
-            count = convert_from_ascii(conn,source_location, target_format)
+            count = convert_from_ascii_to_sqlite(source_location, target_location)
 
-    except Exception as error:
-        print(error)
+        if source_format == 'binary':
+            count = convert_from_binary_to_sqlite(source_location, target_location)
 
-    finally:
-        # close the database if needed
-        if target_format == 'sqlite':
-            if conn:
-                conn.close()
     return count
 
 
@@ -161,8 +185,11 @@ def main():
     print("source : " + args.source)
     print("target : " + args.target)
 
-    result = do_conversion(args)
-    print(result)
+    try:
+        result = do_conversion(args)
+        print(result)
+    except Exception as error:
+        print(error)
 
 if __name__ == '__main__':
     main()
