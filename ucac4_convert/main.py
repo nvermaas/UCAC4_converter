@@ -1,6 +1,7 @@
 import os, sys
 import argparse
 import codecs
+import struct
 
 progressbar_length = 100
 
@@ -99,7 +100,7 @@ def convert_from_ascii_to_sqlite(source_location, target_location):
         # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
         lines = f.readlines()
         number_of_stars = len(lines) - 1
-        progress_factor = number_of_stars / progressbar_length
+        progress_factor = round(number_of_stars / progressbar_length)
 
         # skip the first line with the header
         for line in lines[1:]:
@@ -186,36 +187,40 @@ def convert_from_binary_to_sqlite(source_location, target_location):
                  78 = total number of bytes per star record
 
     """
+
     count = 0
 
     # create a database connection
     conn = create_sqlite_database(target_location)
 
-    nsz = 206
-    with open(source_location, "rb") as f:
-        while count < nsz:
-            pointer = 0
-            size = 8
+    number_of_stars = 205
 
+    with open(source_location, "rb") as f:
+        progress_factor = round(number_of_stars / progressbar_length)
+        pointer = 0
+
+        while count < number_of_stars:
+
+            # ra,dec
+            size = 8
             f.seek(pointer)
             bytes=f.read(size)
+            ra, dec = struct.unpack('<II', bytes) # expected: 4117825, 292970
+
+            # advance pointer
             pointer = pointer + size
 
+            # skip the rest
+            size = 70
+            pointer = pointer + size
+
+            # save the star
+            star = (ra,dec)
+            #add_star_to_sqlite(conn, star)
+            #print(star)
             count = count + 1
 
-    with open(source_location, "r") as f:
-        # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
-        lines = f.readlines()
-        number_of_stars = len(lines) - 1
-        progress_factor = number_of_stars / progressbar_length
-
-        # skip the first line with the header
-        for line in lines[1:]:
-            star = parse_ascii_line(line)
-
-            add_star_to_sqlite(conn, star)
-            count = count + 1
-
+            #print(str(count % progress_factor))
             if (count % progress_factor) == 0:
                 sys.stdout.write(".")
 
