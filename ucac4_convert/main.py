@@ -193,10 +193,10 @@ def convert_from_binary_to_sqlite(source_location, target_location):
     # create a database connection
     conn = create_sqlite_database(target_location)
 
-    zone = 1
-    number_of_stars = 205
-    zone = 451
-    number_of_stars = 133410
+    # this assumes a naming convention of binary files like z001,z002,z???
+    # and the record size of 78 bytes per star
+    zone = int(source_location[-3:])
+    number_of_stars = round(os.path.getsize(source_location)/78)
 
     with open(source_location, "rb") as f:
         progress_factor = round(number_of_stars / progressbar_length)
@@ -260,18 +260,15 @@ def convert_from_binary_to_sqlite(source_location, target_location):
 
             # https://docs.python.org/3/library/struct.html
             id, zone1, rec = struct.unpack('<IhI', bytes)
-            ucacd_id = str(zone).zfill(3) + '-' + str(rec).zfill(6)
+            #ucacd_id = str(zone).zfill(3) + '-' + str(rec).zfill(6)
             ucacd_id = id
             # advance pointer
             pointer = pointer + size
 
             # save the star
-            #   star = (ucac4_id, ot, ra, dec, f_mag, a_mag,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag )
-
-            star = (ucacd_id, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+            star = (ucacd_id, zone, id, rec, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
 
             add_star_to_sqlite(conn, star)
-            #print(star)
             count = count + 1
 
             if (count % progress_factor) == 0:

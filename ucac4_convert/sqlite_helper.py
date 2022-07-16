@@ -5,6 +5,9 @@ from sqlite3 import Error
 ucac4_table = """
 CREATE TABLE IF NOT EXISTS ucac4 (
 	ucac4_id text PRIMARY KEY,
+	zone integer NOT NULL,
+	id integer,
+	rec integer,
 	ot integer NOT NULL,
 	ra float NOT NULL,
 	dec float NOT NULL,
@@ -43,8 +46,8 @@ def create_sqlite_database(db_file):
 
 
 def add_star_to_sqlite(conn, star):
-    sql = ''' INSERT INTO ucac4(ucac4_id,ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
-              VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
+    sql = ''' INSERT INTO ucac4(ucac4_id,zone,id,rec,ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+              VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
     cur = conn.cursor()
     cur.execute(sql, star)
     conn.commit()
