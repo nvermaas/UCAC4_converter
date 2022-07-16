@@ -86,7 +86,7 @@ def parse_ascii_line(line):
     except:
         i_mag = None
 
-    star = (ucac4_id, ot, ra, dec, f_mag, a_mag,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag )
+    star = (ucac4_id,ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag )
     return star
 
 
@@ -193,7 +193,10 @@ def convert_from_binary_to_sqlite(source_location, target_location):
     # create a database connection
     conn = create_sqlite_database(target_location)
 
+    zone = 1
     number_of_stars = 205
+    zone = 451
+    number_of_stars = 133410
 
     with open(source_location, "rb") as f:
         progress_factor = round(number_of_stars / progressbar_length)
@@ -256,22 +259,23 @@ def convert_from_binary_to_sqlite(source_location, target_location):
             bytes=f.read(size)
 
             # https://docs.python.org/3/library/struct.html
-            id, zone, rec = struct.unpack('<IhI', bytes)
-
+            id, zone1, rec = struct.unpack('<IhI', bytes)
+            ucacd_id = str(zone).zfill(3) + '-' + str(rec).zfill(6)
+            ucacd_id = id
             # advance pointer
             pointer = pointer + size
 
             # save the star
             #   star = (ucac4_id, ot, ra, dec, f_mag, a_mag,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag )
 
-            star = (zone, id, rec, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+            star = (ucacd_id, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
 
-            #add_star_to_sqlite(conn, star)
-            print(star)
+            add_star_to_sqlite(conn, star)
+            #print(star)
             count = count + 1
 
-            #if (count % progress_factor) == 0:
-            #    sys.stdout.write(".")
+            if (count % progress_factor) == 0:
+                sys.stdout.write(".")
 
     # close the database connection
     if conn:

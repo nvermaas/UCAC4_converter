@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS ucac4 (
 	ot integer NOT NULL,
 	ra float NOT NULL,
 	dec float NOT NULL,
-    f_mag integer,
-    a_mag integer,
     j_mag integer,
     h_mag integer,
     k_mag integer,
@@ -45,8 +43,8 @@ def create_sqlite_database(db_file):
 
 
 def add_star_to_sqlite(conn, star):
-    sql = ''' INSERT INTO ucac4(ucac4_id,ot,ra,dec,f_mag,a_mag,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
-              VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+    sql = ''' INSERT INTO ucac4(ucac4_id,ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+              VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
     cur = conn.cursor()
     cur.execute(sql, star)
     conn.commit()
