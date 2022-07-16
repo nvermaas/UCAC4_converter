@@ -37,52 +37,52 @@ def parse_ascii_line(line):
     # http://www.ipac.caltech.edu/2mass/releases/allsky/ .
 
     try:
-        f_mag= float(line[63:69])
+        f_mag= round(float(line[63:69])*1000)
     except:
         f_mag = None
 
     try:
-        a_mag = float(line[70:76])
+        a_mag = round(float(line[70:76])* 1000)
     except:
         a_mag = None
 
     try:
-        j_mag = float(line[174:180])
+        j_mag = round(float(line[174:180]) * 1000)
     except:
         j_mag = None
 
     try:
-        h_mag = float(line[189:195])
+        h_mag = round(float(line[189:195]) * 1000)
     except:
         h_mag = None
 
     try:
-        k_mag = float(line[204:210])
+        k_mag = round(float(line[204:210]) * 1000)
     except:
         k_mag = None
 
     try:
-        b_mag = float(line[219:225])
+        b_mag = round(float(line[219:225]) * 1000)
     except:
         b_mag = None
 
     try:
-        v_mag = float(line[230:236]) # visual magnitude
+        v_mag = round(float(line[230:236])  * 1000)# visual magnitude
     except:
         v_mag = None
 
     try:
-        g_mag = float(line[241:247])
+        g_mag = round(float(line[241:247]) * 1000)
     except:
         g_mag = None
 
     try:
-        r_mag = float(line[252:258])
+        r_mag = round(float(line[252:258]) * 1000)
     except:
         r_mag = None
 
     try:
-        i_mag = float(line[263:269])
+        i_mag = round(float(line[263:269]) * 1000)
     except:
         i_mag = None
 
@@ -206,27 +206,72 @@ def convert_from_binary_to_sqlite(source_location, target_location):
             f.seek(pointer)
             bytes=f.read(size)
 
+            # https://docs.python.org/3/library/struct.html
             ra_mas, spd_mas = struct.unpack('<II', bytes) # expected: 4117825, 292970
+
             # convert from milliarcseconds and distance from the south pole
             ra = ra_mas / 3600000
             dec = -90 + (spd_mas / 3600000)
 
+            # advance pointer, and skip 5 bytes
+            pointer = pointer + size + 5
+
+            # object_type
+            size = 1
+            f.seek(pointer)
+            bytes=f.read(size)
+            try:
+                ot = struct.unpack('<B', bytes)[0]
+            except:
+                ot = 0
+
+            # advance pointer, and skip 20 bytes
+            pointer = pointer + size + 20
+
+            # j,h,k magnitude
+            size = 6
+            f.seek(pointer)
+            bytes=f.read(size)
+
+            # https://docs.python.org/3/library/struct.html
+            j_mag, h_mag, k_mag = struct.unpack('<hhh', bytes)
+
+            # advance pointer, and skip 6 bytes
+            pointer = pointer + size + 6
+
+            # b,v,g,r,i magnitude
+            size = 10
+            f.seek(pointer)
+            bytes=f.read(size)
+
+            # https://docs.python.org/3/library/struct.html
+            b_mag, v_mag, g_mag, r_mag, i_mag = struct.unpack('<hhhhh', bytes)
+
+            # advance pointer, and skip 12 bytes
+            pointer = pointer + size + 12
+
+            # id
+            size = 10
+            f.seek(pointer)
+            bytes=f.read(size)
+
+            # https://docs.python.org/3/library/struct.html
+            id, zone, rec = struct.unpack('<IhI', bytes)
+
             # advance pointer
             pointer = pointer + size
 
-            # skip the rest
-            size = 70
-            pointer = pointer + size
-
             # save the star
-            star = (ra,dec)
+            #   star = (ucac4_id, ot, ra, dec, f_mag, a_mag,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag )
+
+            star = (zone, id, rec, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+
             #add_star_to_sqlite(conn, star)
             print(star)
             count = count + 1
 
-            #print(str(count % progress_factor))
-            if (count % progress_factor) == 0:
-                sys.stdout.write(".")
+            #if (count % progress_factor) == 0:
+            #    sys.stdout.write(".")
 
     # close the database connection
     if conn:

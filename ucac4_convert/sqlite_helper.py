@@ -8,16 +8,16 @@ CREATE TABLE IF NOT EXISTS ucac4 (
 	ot integer NOT NULL,
 	ra float NOT NULL,
 	dec float NOT NULL,
-    f_mag float,
-    a_mag float,
-    j_mag float,
-    h_mag float,
-    k_mag float,
-    b_mag float,
-    v_mag float,
-    g_mag float,
-    r_mag float,
-    i_mag float
+    f_mag integer,
+    a_mag integer,
+    j_mag integer,
+    h_mag integer,
+    k_mag integer,
+    b_mag integer,
+    v_mag integer,
+    g_mag integer,
+    r_mag integer,
+    i_mag integer
 );
 """
 
