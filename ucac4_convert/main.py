@@ -238,6 +238,9 @@ def convert_from_binary_to_sqlite(source_location, target_location):
 
             # https://docs.python.org/3/library/struct.html
             j_mag, h_mag, k_mag = struct.unpack('<hhh', bytes)
+            j_mag = None if j_mag == 20000 else j_mag
+            h_mag = None if h_mag == 20000 else h_mag
+            k_mag = None if k_mag == 20000 else k_mag
 
             # advance pointer, and skip 6 bytes
             pointer = pointer + size + 6
@@ -249,6 +252,11 @@ def convert_from_binary_to_sqlite(source_location, target_location):
 
             # https://docs.python.org/3/library/struct.html
             b_mag, v_mag, g_mag, r_mag, i_mag = struct.unpack('<hhhhh', bytes)
+            b_mag = None if b_mag == 20000 else b_mag
+            v_mag = None if v_mag == 20000 else v_mag
+            g_mag = None if g_mag == 20000 else g_mag
+            r_mag = None if r_mag == 20000 else r_mag
+            i_mag = None if i_mag == 20000 else i_mag
 
             # advance pointer, and skip 12 bytes
             pointer = pointer + size + 12
@@ -259,14 +267,17 @@ def convert_from_binary_to_sqlite(source_location, target_location):
             bytes=f.read(size)
 
             # https://docs.python.org/3/library/struct.html
-            id, zone1, rec = struct.unpack('<IhI', bytes)
-            #ucacd_id = str(zone).zfill(3) + '-' + str(rec).zfill(6)
-            ucacd_id = id
+            mpos1, zone2, rec = struct.unpack('<IhI', bytes)
+            #ucacd_id = mpos1
+
+            ucacd2 = str(zone2).zfill(3) + '-' + str(rec).zfill(6)
+            ucacd2 = None if ucacd2 == "000-000000" else ucacd2
+
             # advance pointer
             pointer = pointer + size
 
             # save the star
-            star = (ucacd_id, zone, id, rec, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
+            star = (zone, mpos1,ucacd2, ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
 
             add_star_to_sqlite(conn, star)
             count = count + 1
