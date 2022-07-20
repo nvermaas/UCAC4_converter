@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS zones (
 	zone integer PRIMARY KEY,
 	nr_of_stars integer,
 	accumulated_sum integer,
-	max_dec float NOT NULL,
+	max_dec float NOT NULL
 );
 """
 
@@ -43,7 +43,7 @@ def create_sqlite_database(db_file, schema):
     try:
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
-        cursor.execute(ucac4_table)
+        cursor.execute(schema)
 
     except Error as e:
         print(e)

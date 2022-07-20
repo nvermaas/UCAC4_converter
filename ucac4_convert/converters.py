@@ -6,7 +6,6 @@ from ucac4_convert.sqlite_helper import create_sqlite_database, add_star_to_sqli
 
 progressbar_length = 100
 
-
 def convert_zonestats_from_ascii_to_sqlite(source_location, target_location):
     """
     Convert the index file with statistics per zone to a sqlite database
@@ -52,10 +51,11 @@ def convert_zonestats_from_ascii_to_sqlite(source_location, target_location):
 
         # skip the lines with header and documentation
         for line in lines[11:]:
-            zone = _parse_ascii_line(line)
+            if not "-----" in line:
+                zone = _parse_ascii_line(line)
 
-            add_zone_to_sqlite(conn, zone)
-            count = count + 1
+                add_zone_to_sqlite(conn, zone)
+                count = count + 1
 
     # close the database connection
     if conn:
@@ -256,7 +256,7 @@ def convert_from_binary_to_sqlite(source_location, target_location):
     count = 0
 
     # create a database connection
-    conn = create_sqlite_database(target_location)
+    conn = create_sqlite_database(target_location, ucac4_table)
 
     # this assumes a naming convention of binary files like z001,z002,z???
     # and the record size of 78 bytes per star
@@ -354,3 +354,61 @@ def convert_from_binary_to_sqlite(source_location, target_location):
         conn.close()
 
     return count
+
+
+class UCAC4_Converter:
+
+    zone_stats = """
+    CREATE TABLE IF NOT EXISTS zones (
+    	zone integer PRIMARY KEY,
+    	nr_of_stars integer,
+    	accumulated_sum integer,
+    	max_dec float NOT NULL
+    );
+    """
+
+    ucac4_table = """
+    CREATE TABLE IF NOT EXISTS ucac4 (
+    	zone integer NOT NULL,
+    	mpos1 integer PRIMARY KEY,
+    	ucac2 text,
+    	ot integer NOT NULL,
+    	ra float NOT NULL,
+    	dec float NOT NULL,
+        j_mag integer,
+        h_mag integer,
+        k_mag integer,
+        b_mag integer,
+        v_mag integer,
+        g_mag integer,
+        r_mag integer,
+        i_mag integer
+    );
+    """
+
+    def __init__(self, args):
+        """
+        Constructor.
+        :param args: the dict of parameters to the application
+        """
+
+        self.source_format = args.source.split(':')[0]
+        self.source_location = args.source.split(':')[1]
+
+        self.target_format = args.target.split(':')[0]
+        self.target_location = args.target.split(':')[1]
+
+
+    def convert(self):
+
+        if self.target_format == 'sqlite':
+
+            if self.source_format == 'ascii_zonestats':
+                count = convert_zonestats_from_ascii_to_sqlite(self.source_location, self.target_location)
+
+            elif self.source_format == 'ascii':
+                count = convert_from_ascii_to_sqlite(self.source_location, self.target_location)
+
+            elif self.source_format == 'binary':
+                count = convert_from_binary_to_sqlite(self.source_location, self.target_location)
+
