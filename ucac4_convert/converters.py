@@ -1,7 +1,14 @@
 import os, sys
 import struct
 
-from ucac4_convert.sqlite_helper import create_sqlite_database, add_star_to_sqlite, add_zone_to_sqlite, ucac4_table, \
+from ucac4_convert.database_helper import \
+    create_sqlite_database,\
+    create_postgres_database, \
+    add_star_to_sqlite, \
+    add_star_to_postgres, \
+    add_zone_to_database, \
+    create_database_schema, \
+    create_table_schema, \
     zone_stats
 
 progressbar_length = 100
@@ -54,7 +61,7 @@ def convert_zonestats_from_ascii_to_sqlite(source_location, target_location):
             if not "-----" in line:
                 zone = _parse_ascii_line(line)
 
-                add_zone_to_sqlite(conn, zone)
+                add_zone_to_database(conn, zone)
                 count = count + 1
 
     # close the database connection
@@ -65,7 +72,7 @@ def convert_zonestats_from_ascii_to_sqlite(source_location, target_location):
 
 
 
-def convert_from_ascii_to_sqlite(source_location, target_location):
+def convert_from_ascii_to_database(source_location, target_location):
 
     def _parse_ascii_line(line):
         # https://irsa.ipac.caltech.edu/data/UCAC4/readme_u4.txt
@@ -155,11 +162,10 @@ def convert_from_ascii_to_sqlite(source_location, target_location):
         # star = (ucac4_id,ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag )
         return star
 
-
     count = 0
 
     # create a database connection
-    conn = create_sqlite_database(target_location, ucac4_table)
+    conn = create_sqlite_database(target_location, create_table_schema)
 
     with open(source_location, "r") as f:
         # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
@@ -171,7 +177,7 @@ def convert_from_ascii_to_sqlite(source_location, target_location):
         for line in lines[1:]:
             star = _parse_ascii_line(line)
 
-            add_star_to_sqlite(conn, star)
+            add_star_to_database(conn, star)
             count = count + 1
 
             if (count % progress_factor) == 0:
@@ -184,7 +190,7 @@ def convert_from_ascii_to_sqlite(source_location, target_location):
     return count
 
 
-def convert_from_binary_to_sqlite(source_location, target_location):
+def convert_from_binary_to_database(args, source_location, target_location, target_format):
     """
             col byte item   fmt unit       explanation                            notes
         ---------------------------------------------------------------------------
@@ -252,15 +258,31 @@ def convert_from_binary_to_sqlite(source_location, target_location):
                  78 = total number of bytes per star record
 
     """
-
+    zone = int(source_location[-3:])
     count = 0
 
     # create a database connection
-    conn = create_sqlite_database(target_location, ucac4_table)
+    conn = None
+
+    # construct the correct database schema for this zone
+
+    table_name = "z"+target_location[-3:]
+
+    if target_format == 'sqlite':
+        # target_location: ../z001.sqlite3
+        schema = create_table_schema.replace("replace-with-zone", table_name)
+        conn = create_sqlite_database(target_location, schema)
+
+    elif target_format == 'postgres':
+        # target_location: ucac4.z002
+        db_table_names = target_location.split('.')
+        database_name = db_table_names[0]
+        table_name = db_table_names[1]
+        schema = create_table_schema.replace("replace-with-zone", table_name)
+        conn = create_postgres_database(args, database_name, schema)
 
     # this assumes a naming convention of binary files like z001,z002,z???
     # and the record size of 78 bytes per star
-    zone = int(source_location[-3:])
     number_of_stars = round(os.path.getsize(source_location) / 78)
 
     with open(source_location, "rb") as f:
@@ -343,7 +365,11 @@ def convert_from_binary_to_sqlite(source_location, target_location):
             # save the star
             star = (zone, mpos1, ucac2, ot, ra, dec, j_mag, h_mag, k_mag, b_mag, v_mag, g_mag, r_mag, i_mag)
 
-            add_star_to_sqlite(conn, star)
+            if target_format == 'sqlite':
+                add_star_to_sqlite(conn, table_name, star)
+            elif target_format == 'postgres':
+                add_star_to_postgres(conn, table_name, star)
+
             count = count + 1
 
             if (count % progress_factor) == 0:
@@ -358,40 +384,12 @@ def convert_from_binary_to_sqlite(source_location, target_location):
 
 class UCAC4_Converter:
 
-    zone_stats = """
-    CREATE TABLE IF NOT EXISTS zones (
-    	zone integer PRIMARY KEY,
-    	nr_of_stars integer,
-    	accumulated_sum integer,
-    	max_dec float NOT NULL
-    );
-    """
-
-    ucac4_table = """
-    CREATE TABLE IF NOT EXISTS ucac4 (
-    	zone integer NOT NULL,
-    	mpos1 integer PRIMARY KEY,
-    	ucac2 text,
-    	ot integer NOT NULL,
-    	ra float NOT NULL,
-    	dec float NOT NULL,
-        j_mag integer,
-        h_mag integer,
-        k_mag integer,
-        b_mag integer,
-        v_mag integer,
-        g_mag integer,
-        r_mag integer,
-        i_mag integer
-    );
-    """
-
     def __init__(self, args):
         """
         Constructor.
         :param args: the dict of parameters to the application
         """
-
+        self.args = args
         self.source_format = args.source.split(':')[0]
         self.source_location = args.source.split(':')[1]
 
@@ -407,8 +405,12 @@ class UCAC4_Converter:
                 count = convert_zonestats_from_ascii_to_sqlite(self.source_location, self.target_location)
 
             elif self.source_format == 'ascii':
-                count = convert_from_ascii_to_sqlite(self.source_location, self.target_location)
+                count = convert_from_ascii_to_database(self.source_location, self.target_location)
 
             elif self.source_format == 'binary':
-                count = convert_from_binary_to_sqlite(self.source_location, self.target_location)
+                count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
 
+        if self.target_format == 'postgres':
+
+            if self.source_format == 'binary':
+                count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)

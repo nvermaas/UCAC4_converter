@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
-requirements = ['requests']
+requirements = ['requests','psycopg2']
 
-setup(name='console_scripts',
+setup(name='ucac4_converter',
       version='1.0.0',
       description='Convert UCAC4 Catalog',
       url='https://github.com/nvermaas/UCAC4_converter',
@@ -12,7 +12,7 @@ setup(name='console_scripts',
       install_requires=requirements,
       packages=find_packages(),
       entry_points={
-            'console_scripts': [
+            'ucac4_converter': [
                   'ucac4-convert=ucac4_convert.main:main'
               ],
       })

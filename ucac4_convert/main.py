@@ -8,11 +8,25 @@ def main():
     parser.add_argument("--command, -c", default="convert",help="convert, cone_search")
     parser.add_argument("--source",
                         default="binary:../z001",
-                        help="source format:path. Source can be 'ascii','ascii_zonestats','binary'")
+                        help="source format:location. Source can be 'ascii','ascii_zonestats','binary'")
     parser.add_argument("--target",
                         default="mysqlite:UCAC4_sample.sqlite3",
                         help="format:location of the output. Format can be 'sqlite' or 'postgres'. The output is either a path or a database url")
-
+    parser.add_argument("--host",
+                        default="localhost",
+                        help="database host")
+    parser.add_argument("--user",
+                        default="postgres",
+                        help="postgres user")
+    parser.add_argument("--password",
+                        default="postgres",
+                        help="postgres password")
+    parser.add_argument("--port",
+                        default="5432",
+                        help="database host")
+    parser.add_argument("--database",
+                        default="postgres",
+                        help="postgres database")
     args = args = parser.parse_args()
 
     print("--- UCAC4 Converter (version 20 july 2022) ---")
