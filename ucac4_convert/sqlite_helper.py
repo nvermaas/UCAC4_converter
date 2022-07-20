@@ -2,6 +2,15 @@ import os
 import sqlite3
 from sqlite3 import Error
 
+zone_stats = """
+CREATE TABLE IF NOT EXISTS zones (
+	zone integer PRIMARY KEY,
+	nr_of_stars integer,
+	accumulated_sum integer,
+	max_dec float NOT NULL,
+);
+"""
+
 ucac4_table = """
 CREATE TABLE IF NOT EXISTS ucac4 (
 	zone integer NOT NULL,
@@ -21,7 +30,7 @@ CREATE TABLE IF NOT EXISTS ucac4 (
 );
 """
 
-def create_sqlite_database(db_file):
+def create_sqlite_database(db_file, schema):
     """ create a database connection to a SQLite database """
 
     # remove existing file
@@ -42,6 +51,14 @@ def create_sqlite_database(db_file):
             conn.close()
 
     return conn
+
+
+def add_zone_to_sqlite(conn, zone):
+    sql = ''' INSERT INTO zones(zone,nr_of_stars,accumulated_sum,max_dec)
+              VALUES(?,?,?,?) '''
+    cur = conn.cursor()
+    cur.execute(sql, zone)
+    conn.commit()
 
 
 def add_star_to_sqlite(conn, star):
