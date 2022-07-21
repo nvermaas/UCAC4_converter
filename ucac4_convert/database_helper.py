@@ -108,7 +108,6 @@ def create_postgres_database(args, database_name, schema):
         # create the table
         try:
             cursor.execute(schema)
-            #cursor.execute("CREATE TABLE zz002 (zone integer NOT NULL, mpos1 integer PRIMARY KEY, ucac2 text,ot integer NOT NULL,ra float NOT NULL,dec float NOT NULL);")
         except psycopg2.Error as e:
             # table already exists, continue
             print(e)

@@ -414,3 +414,5 @@ class UCAC4_Converter:
 
             if self.source_format == 'binary':
                 count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
+
+        return count
