@@ -143,7 +143,8 @@ def add_star_to_sqlite(conn, table_name, star):
     try:
         cur.execute(sql, star)
         conn.commit()
-    except:
+    except Error as e:
+        print(e)
         print(str(star[1]) + ' already exists... continue')
 
 

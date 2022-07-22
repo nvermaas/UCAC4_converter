@@ -405,7 +405,7 @@ class UCAC4_Converter:
 
     def convert(self):
 
-        if self.target_format == 'sqlite':
+        if self.target_format == 'sqlite' or self.target_format == 'postgres':
 
             if self.source_format == 'ascii_zonestats':
                 count = convert_zonestats_from_ascii_to_sqlite(self.source_location, self.target_location)
@@ -435,9 +435,9 @@ class UCAC4_Converter:
                 else:
                     count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
 
-        if self.target_format == 'postgres':
-
-            if self.source_format == 'binary':
-                count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
+        #if self.target_format == 'postgres':
+        #
+        #    if self.source_format == 'binary':
+        #        count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
 
         return count
