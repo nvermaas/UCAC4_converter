@@ -35,20 +35,25 @@ CREATE TABLE replace-with-zone (
 );
 """
 
-def create_sqlite_database(db_file, schema):
+def open_sqlite_database(db_file, schema, remove_database):
     """ create a database connection to a SQLite database """
 
-    # remove existing file
-    try:
-        os.remove(db_file)
-    except OSError:
-        pass
+    if remove_database:
+        try:
+            os.remove(db_file)
+        except OSError:
+            pass
 
     conn = None
     try:
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
-        cursor.execute(schema)
+
+        try:
+            cursor.execute(schema)
+        except Error as e:
+            # database already exists, continue
+            print(e)
 
     except Error as e:
         print(e)
@@ -58,7 +63,7 @@ def create_sqlite_database(db_file, schema):
     return conn
 
 
-def create_postgres_database(args, database_name, schema):
+def open_postgres_database(args, database_name, schema):
     """ create a database connection to a Postgres database """
 
 
@@ -94,6 +99,7 @@ def create_postgres_database(args, database_name, schema):
 
         # connect to the just created database
         # establishing the connection
+
         conn = psycopg2.connect(
             database=database_name,
             user=args.user,
@@ -134,13 +140,20 @@ def add_star_to_sqlite(conn, table_name, star):
               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
     sql = base_sql.replace("replace-with-zone",table_name)
     cur = conn.cursor()
-    cur.execute(sql, star)
-    conn.commit()
-    
+    try:
+        cur.execute(sql, star)
+        conn.commit()
+    except:
+        print(str(star[1]) + ' already exists... continue')
+
+
 def add_star_to_postgres(conn, table_name, star):
     base_sql = ''' INSERT INTO replace-with-zone(zone,mpos1,ucac2,ot,ra,dec,j_mag,h_mag,k_mag,b_mag,v_mag,g_mag,r_mag,i_mag)
               VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '''
     sql = base_sql.replace("replace-with-zone",table_name)
     cur = conn.cursor()
-    cur.execute(sql, star)
-    conn.commit()
+    try:
+        cur.execute(sql, star)
+        conn.commit()
+    except:
+        print(str(star[1]) + ' already exists... continue')

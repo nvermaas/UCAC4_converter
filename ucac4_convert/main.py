@@ -27,6 +27,10 @@ def main():
     parser.add_argument("--database",
                         default="postgres",
                         help="postgres database")
+    parser.add_argument("--remove_database",
+                        default=False,
+                        help="First remove existing database (sqlite only).",
+                        action="store_true")
     args = args = parser.parse_args()
 
     print("--- UCAC4 Converter (version 20 july 2022) ---")
@@ -37,7 +41,7 @@ def main():
         converter = UCAC4_Converter(args)
         count = converter.convert()
 
-        print(count)
+        print("imported "+ str(count) + " stars")
     except Exception as error:
         print(error)
 

@@ -2,8 +2,8 @@ import os, sys
 import struct
 
 from ucac4_convert.database_helper import \
-    create_sqlite_database,\
-    create_postgres_database, \
+    open_sqlite_database,\
+    open_postgres_database, \
     add_star_to_sqlite, \
     add_star_to_postgres, \
     add_zone_to_database, \
@@ -50,8 +50,12 @@ def convert_zonestats_from_ascii_to_sqlite(source_location, target_location):
 
     count = 0
 
+    db_table_names = target_location.split(':')
+    database_name = db_table_names[0]
+    table_name = db_table_names[1]
+
     # create a database connection
-    conn = create_sqlite_database(target_location, zone_stats)
+    conn = open_sqlite_database(database_name, zone_stats, True)
 
     with open(source_location, "r") as f:
         lines = f.readlines()
@@ -164,8 +168,13 @@ def convert_from_ascii_to_database(source_location, target_location):
 
     count = 0
 
+    db_table_names = target_location.split(':')
+    database_name = db_table_names[0]
+    table_name = db_table_names[1]
+
     # create a database connection
-    conn = create_sqlite_database(target_location, create_table_schema)
+    schema = create_table_schema.replace("replace-with-zone", table_name)
+    conn = open_sqlite_database(database_name, schema, True)
 
     with open(source_location, "r") as f:
         # with codecs.open(source_location, 'r', encoding='utf-8', errors='ignore') as f:
@@ -177,7 +186,7 @@ def convert_from_ascii_to_database(source_location, target_location):
         for line in lines[1:]:
             star = _parse_ascii_line(line)
 
-            add_star_to_database(conn, star)
+            add_star_to_sqlite(conn, table_name, star)
             count = count + 1
 
             if (count % progress_factor) == 0:
@@ -266,20 +275,17 @@ def convert_from_binary_to_database(args, source_location, target_location, targ
 
     # construct the correct database schema for this zone
 
-    table_name = "z"+target_location[-3:]
+    db_table_names = target_location.split(':')
+    database_name = db_table_names[0]
+    table_name = db_table_names[1]
+    schema = create_table_schema.replace("replace-with-zone", table_name)
 
     if target_format == 'sqlite':
         # target_location: ../z001.sqlite3
-        schema = create_table_schema.replace("replace-with-zone", table_name)
-        conn = create_sqlite_database(target_location, schema)
+        conn = open_sqlite_database(database_name, schema,args.remove_database)
 
     elif target_format == 'postgres':
-        # target_location: ucac4.z002
-        db_table_names = target_location.split('.')
-        database_name = db_table_names[0]
-        table_name = db_table_names[1]
-        schema = create_table_schema.replace("replace-with-zone", table_name)
-        conn = create_postgres_database(args, database_name, schema)
+        conn = open_postgres_database(args, database_name, schema)
 
     # this assumes a naming convention of binary files like z001,z002,z???
     # and the record size of 78 bytes per star
@@ -390,11 +396,11 @@ class UCAC4_Converter:
         :param args: the dict of parameters to the application
         """
         self.args = args
-        self.source_format = args.source.split(':')[0]
-        self.source_location = args.source.split(':')[1]
+        self.source_format = args.source.split('::')[0]
+        self.source_location = args.source.split('::')[1]
 
-        self.target_format = args.target.split(':')[0]
-        self.target_location = args.target.split(':')[1]
+        self.target_format = args.target.split('::')[0]
+        self.target_location = args.target.split('::')[1]
 
 
     def convert(self):
@@ -408,7 +414,26 @@ class UCAC4_Converter:
                 count = convert_from_ascii_to_database(self.source_location, self.target_location)
 
             elif self.source_format == 'binary':
-                count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
+                count = 0
+
+                # check if a range has to be converted
+                if "..z" in self.source_location:
+
+                    # extract the range from "z001..z005"
+                    source_range = self.source_location[-10:]
+                    source_base = self.source_location.replace(source_range,'')
+                    start = int(source_range[1:4])
+                    end =int(source_range[7:10])
+
+                    for x in range(start,end+1):
+                        filename = 'z'+str(x).zfill(3)
+                        source_location = os.path.join(source_base,filename)
+                        subcount = convert_from_binary_to_database(self.args, source_location, self.target_location, self.target_format)
+                        print(filename + ": "+str(subcount)+ " stars")
+                        count = count + subcount
+
+                else:
+                    count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
 
         if self.target_format == 'postgres':
 
