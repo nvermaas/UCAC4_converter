@@ -1,1 +1,0 @@
-python ucac4_convert\main.py --source="binary::\\yggdrasil\nfs_shared_mintbox\UCAC4\z001..z005" --target=postgres::ucac4:stars

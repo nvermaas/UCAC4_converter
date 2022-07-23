@@ -53,7 +53,8 @@ def open_sqlite_database(db_file, schema, remove_database):
             cursor.execute(schema)
         except Error as e:
             # database already exists, continue
-            print(e)
+            # print(e)
+            pass
 
     except Error as e:
         print(e)
@@ -93,7 +94,8 @@ def open_postgres_database(args, database_name, schema):
             cursor.execute("CREATE DATABASE "+database_name)
         except psycopg2.Error as e:
             # database already exists, continue
-            print(e)
+            # print(e)
+            pass
 
         conn.close()
 
@@ -116,7 +118,8 @@ def open_postgres_database(args, database_name, schema):
             cursor.execute(schema)
         except psycopg2.Error as e:
             # table already exists, continue
-            print(e)
+            # print(e)
+            pass
 
     except psycopg2.Error as e:
         print(e)
@@ -144,7 +147,7 @@ def add_star_to_sqlite(conn, table_name, star):
         cur.execute(sql, star)
         conn.commit()
     except Error as e:
-        print(e)
+        #print(e)
         print(str(star[1]) + ' already exists... continue')
 
 

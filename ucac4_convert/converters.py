@@ -1,5 +1,6 @@
 import os, sys
 import struct
+import pika
 
 from ucac4_convert.database_helper import \
     open_sqlite_database,\
@@ -12,6 +13,22 @@ from ucac4_convert.database_helper import \
     zone_stats
 
 progressbar_length = 100
+
+def send_message_to_rabbitMQ(args, exchange, message):
+    try:
+        rabbit_host = args.rabbit_host
+        rabbit_port = args.rabbit_port
+        credentials = pika.PlainCredentials(args.rabbit_user, args.rabbit_password)
+        connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host, rabbit_port, '/', credentials))
+
+        channel = connection.channel()
+        channel.exchange_declare(exchange=exchange, exchange_type='fanout')
+        channel.basic_publish(exchange=exchange, routing_key='', body=message)
+
+        connection.close()
+    except:
+        # only send a message if all parameters are given, otherwise just ignore
+        pass
 
 def convert_zonestats_from_ascii_to_sqlite(source_location, target_location):
     """
@@ -429,15 +446,16 @@ class UCAC4_Converter:
                         filename = 'z'+str(x).zfill(3)
                         source_location = os.path.join(source_base,filename)
                         subcount = convert_from_binary_to_database(self.args, source_location, self.target_location, self.target_format)
-                        print(filename + ": "+str(subcount)+ " stars")
                         count = count + subcount
+
+                        message = filename + ": "+str(subcount)+ " stars"
+                        print(message)
+                        send_message_to_rabbitMQ(self.args,'slack',message)
 
                 else:
                     count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
-
-        #if self.target_format == 'postgres':
-        #
-        #    if self.source_format == 'binary':
-        #        count = convert_from_binary_to_database(self.args, self.source_location, self.target_location, self.target_format)
+                    message = self.source_location + ": " + str(count) + " stars"
+                    print(message)
+                    send_message_to_rabbitMQ(self.args,'slack',message)
 
         return count

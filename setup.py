@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-requirements = ['requests','psycopg2']
+requirements = ['requests','psycopg2','pika']
 
 setup(name='ucac4_converter',
       version='1.0.0',
@@ -12,7 +12,7 @@ setup(name='ucac4_converter',
       install_requires=requirements,
       packages=find_packages(),
       entry_points={
-            'ucac4_converter': [
-                  'ucac4-convert=ucac4_convert.main:main'
+            'console_scripts': [
+                  'ucac4=ucac4_convert.main:main'
               ],
       })

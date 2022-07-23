@@ -27,13 +27,25 @@ def main():
     parser.add_argument("--database",
                         default="postgres",
                         help="postgres database")
+    parser.add_argument("--rabbit_host",
+                        default="192.168.178.37",
+                        help="RabbitMQ host")
+    parser.add_argument("--rabbit_port",
+                        default="5672",
+                        help="RabbitMQ port")
+    parser.add_argument("--rabbit_user",
+                        default="nvermaas",
+                        help="RabbitMQ user")
+    parser.add_argument("--rabbit_password",
+                        default=None,
+                        help="RabbitMQ password")
     parser.add_argument("--remove_database",
                         default=False,
                         help="First remove existing database (sqlite only).",
                         action="store_true")
     args = args = parser.parse_args()
 
-    print("--- UCAC4 Converter (version 20 july 2022) ---")
+    print("--- UCAC4 Converter (version 23 july 2022) ---")
     print("source : " + args.source)
     print("target : " + args.target)
 
