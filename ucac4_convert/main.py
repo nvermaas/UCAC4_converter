@@ -1,11 +1,25 @@
 
 import argparse
-
+import math
 from ucac4_convert.converters import UCAC4_Converter
+
+def cone_to_box(ra, dec, radius):
+    # ra_min, ra_max, dec_min, dec_max
+    dec_min = dec - radius
+    dec_max = dec + radius
+    dec_factor = 1 / math.cos(math.radians(dec))
+
+    ra_min = ra - (radius * dec_factor)
+    ra_max = ra + (radius * dec_factor)
+
+
+    box = [ra_min,ra_max,dec_min,dec_max]
+    return box
 
 def main():
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
-    parser.add_argument("--command, -c", default="convert",help="convert, cone_search")
+    parser.add_argument("--operation",
+                        default="convert",help="convert, cone_search")
     parser.add_argument("--source",
                         default="binary:../z001",
                         help="source format:location. Source can be 'ascii','ascii_zonestats','binary'")
@@ -45,17 +59,21 @@ def main():
                         action="store_true")
     args = args = parser.parse_args()
 
-    print("--- UCAC4 Converter (version 23 july 2022) ---")
+    print("--- UCAC4 Converter (version 27 july 2022) ---")
     print("source : " + args.source)
     print("target : " + args.target)
 
-    try:
-        converter = UCAC4_Converter(args)
-        count = converter.convert()
+    if args.operation == 'cone':
+        box = cone_to_box(10,50,10)
+        print(box)
+    else:
+        try:
+            converter = UCAC4_Converter(args)
+            count = converter.convert()
 
-        print("imported "+ str(count) + " stars")
-    except Exception as error:
-        print(error)
+            print("imported "+ str(count) + " stars")
+        except Exception as error:
+            print(error)
 
 if __name__ == '__main__':
     main()

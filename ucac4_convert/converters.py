@@ -126,6 +126,8 @@ def convert_from_ascii_to_database(source_location, target_location):
         # et al. 2006).  In addition, magnitudes errors and some flags are provided.
         # For more details see http://www.aavso.org/apass  and
         # http://www.ipac.caltech.edu/2mass/releases/allsky/ .
+        #
+        # https://iopscience.iop.org/article/10.1088/0004-6256/148/5/81
 
         try:
             f_mag = round(float(line[63:69]) * 1000)

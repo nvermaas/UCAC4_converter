@@ -1,1 +1,1 @@
-python ucac4_convert\main.py --source="binary::\\yggdrasil\nfs_shared_mintbox\UCAC4\z701..z800" --target=postgres::ucac4:stars
+python ucac4_convert\main.py --source="binary::\\yggdrasil\nfs_shared_mintbox\UCAC4\z899..z900" --target=postgres::ucac4:stars --host=raspiastro --rabbit_password=RaBbIt_2019
